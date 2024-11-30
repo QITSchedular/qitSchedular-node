@@ -1,0 +1,10 @@
+node_modules
+.env
+
+
+application ID : cfcb98ad-6c8c-41bd-9a5b-7b77b0d14586
+Object ID :f028b467-17fe-4505-9551-1c3fe8ea77f8
+Tenant ID : e0c49df4-8848-42cf-8942-0438105254ec
+
+client_secert: cfbfc04e-645b-483f-aa46-a771a401da81
+client_value: z-Q8Q~L4dvhrSR6BAk_ExpcWA5A111A210TOyduv

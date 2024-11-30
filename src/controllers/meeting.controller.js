@@ -7,7 +7,7 @@ const clientId = '277a5a29-5df0-4268-90bf-d679ba5920d1';
 const clientSecret = 'FMu8Q~1fr2UR5-2V7G1zLGLgP.qARhiuiHucsajD';
 const grantType = 'client_credentials';
 const scope = 'https://graph.microsoft.com/.default';
-const userPrincipalName = 'aman.s@qitsolution.co.in';
+const userPrincipalName = 'keyur@qitsolution.co.in';
 
 const getAccessToken = async () => {
   try {
@@ -36,46 +36,150 @@ const getAccessToken = async () => {
   }
 };
 
+// exports.scheduleMeeting = async (req, res) => {
+//   try {
+//     const accessToken = await getAccessToken();
+//     const config = req.body;
+
+//     // Validate and fix the dateTime fields
+//     const startDateTime = new Date(config.start.dateTime); // Parse the start date
+//     const endDateTime = new Date(config.end.dateTime);     // Parse the end date
+
+//     if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+//       return res.status(400).json({
+//         message: "Invalid start or end dateTime. Ensure the format is correct.",
+//       });
+//     }
+
+//     // Ensure the format is ISO 8601
+//     config.start.dateTime = startDateTime.toISOString();
+//     config.end.dateTime = endDateTime.toISOString();
+
+//     const eventResponse = await axios.post(
+//       `https://graph.microsoft.com/v1.0/users/${userPrincipalName}/calendar/events`,
+//       config,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${accessToken}`,
+//           "Content-Type": "application/json",
+//         },
+//       },
+//     );
+//     if (eventResponse.status === 201) {
+//       res.status(201).json({ message: "Event created successfully" });
+//     } else {
+//       res
+//         .status(eventResponse.status)
+//         .json({ message: "Failed to create event" })
+// ;
+//     }
+//   } catch (error) {
+//     console.error(
+//       "Error:",
+//       error.response ? error.response.data : error.message,
+//     );
+//     res.status(error.response ? error.response.status : 500).json({
+//       message: "An error occurred",
+//       error: error.response ? error.response.data : error.message,
+//     });
+//   }
+// };
+
 exports.scheduleMeeting = async (req, res) => {
   try {
     const accessToken = await getAccessToken();
-    const config = req.body;
+    const { meetingDetails, ...meetingConfig } = req.body;
 
-    // Validate and fix the dateTime fields
-    const startDateTime = new Date(config.start.dateTime); // Parse the start date
-    const endDateTime = new Date(config.end.dateTime);     // Parse the end date
+    // Validate and format start and end dates
+    const startDateTime = new Date(meetingConfig.start.dateTime).toISOString();
+    const endDateTime = new Date(meetingConfig.end.dateTime).toISOString();
 
-    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-      return res.status(400).json({
-        message: "Invalid start or end dateTime. Ensure the format is correct.",
-      });
+    if (!startDateTime || !endDateTime) {
+      return res.status(400).json({ message: "Invalid dateTime format." });
     }
 
-    // Ensure the format is ISO 8601
-    config.start.dateTime = startDateTime.toISOString();
-    config.end.dateTime = endDateTime.toISOString();
+    meetingConfig.start.dateTime = startDateTime;
+    meetingConfig.end.dateTime = endDateTime;
 
+    // Schedule the meeting
     const eventResponse = await axios.post(
-      `https://graph.microsoft.com/v1.0/users/${userPrincipalName}/calendar/events`,
-      config,
+      `https://graph.microsoft.com/v1.0/users/keyur@qitsolution.co.in/calendar/events`,
+      meetingConfig,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
-      },
+      }
     );
+
     if (eventResponse.status === 201) {
-      res.status(201).json({ message: "Event created successfully" });
+      // Extract meeting details
+      const meetingDetails = {
+        subject: meetingConfig.subject,
+        startTime: meetingConfig.start.dateTime,
+        endTime: meetingConfig.end.dateTime,
+        location: meetingConfig.location.displayName,
+        attendee: meetingConfig.attendees[0]?.emailAddress?.address,
+      };
+
+      // Send confirmation email
+      const emailContent = `
+        <html>
+  <body>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+      <div style="background-color: #0078d7; color: #ffffff; padding: 20px; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">Meeting Confirmation</h1>
+      </div>
+      <div style="padding: 20px; background-color: #f9f9f9;">
+        <p style="margin: 0; font-size: 16px;">Dear <strong>Keyur Modi</strong>,</p>
+        <p style="margin: 10px 0; font-size: 16px; line-height: 1.5;">
+          Your meeting has been successfully scheduled with the following details:
+        </p>
+        <ul style="margin: 10px 0; padding-left: 20px; font-size: 16px; line-height: 1.6; color: #333;">
+        <li><strong>Name:</strong>${meetingConfig.attendees[0]?.emailAddress?.name}</li>
+          <li><strong>Subject:</strong> ${meetingDetails.subject}</li>
+          <li><strong>Start Time:</strong> ${new Date(meetingDetails.startTime).toLocaleString()}</li>
+          <li><strong>End Time:</strong> ${new Date(meetingDetails.endTime).toLocaleString()}</li>
+          <li><strong>Location:</strong> ${meetingDetails.location}</li>
+        </ul>
+        <p style="margin: 10px 0; font-size: 16px; line-height: 1.5;">
+        </p>
+      </div>
+      <div style="text-align: center; background-color: #0078d7; color: #ffffff; padding: 10px;">
+        <p style="margin: 0; font-size: 14px;">Thank you for using our service!</p>
+      </div>
+    </div>
+  </body>
+</html>
+
+      `;
+
+      await axios.post(
+        `https://graph.microsoft.com/v1.0/users/keyur@qitsolution.co.in/sendMail`,
+        {
+          message: {
+            subject: "Meeting Confirmation",
+            body: { contentType: "HTML", content: emailContent },
+            toRecipients: [
+              { emailAddress: { address: 'keyur@qitsolution.co.in' } },
+            ],
+          },
+          saveToSentItems: "true",
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      res.status(201).json({ message: "Event created and email sent successfully" });
     } else {
-      res
-        .status(eventResponse.status)
-        .json({ message: "Failed to create event" });
+      res.status(eventResponse.status).json({ message: "Failed to create event" });
     }
   } catch (error) {
     console.error(
       "Error:",
-      error.response ? error.response.data : error.message,
+      error.response ? error.response.data : error.message
     );
     res.status(error.response ? error.response.status : 500).json({
       message: "An error occurred",
@@ -83,6 +187,7 @@ exports.scheduleMeeting = async (req, res) => {
     });
   }
 };
+
 
 
 exports.sendVerificationEmail = async (req, res) => {
@@ -138,7 +243,7 @@ exports.sendVerificationEmail = async (req, res) => {
   `;
 
     await axios.post(
-      `https://graph.microsoft.com/v1.0/users/aman.s@qitsolution.co.in/sendMail`,
+      `https://graph.microsoft.com/v1.0/users/keyur@qitsolution.co.in/sendMail`,
       {
         message: {
           subject: "Complete Email Verification",

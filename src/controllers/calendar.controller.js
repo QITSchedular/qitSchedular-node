@@ -6,7 +6,7 @@ const clientId = '277a5a29-5df0-4268-90bf-d679ba5920d1';
 const clientSecret = 'FMu8Q~1fr2UR5-2V7G1zLGLgP.qARhiuiHucsajD';
 const grantType = 'client_credentials';
 const scope = 'https://graph.microsoft.com/.default';
-const userPrincipalName = 'aman.s@qitsolution.co.in';
+const userPrincipalName = 'keyur@qitsolution.co.in';
 
 // Step 1: Get Token
 async function getToken() {
@@ -62,6 +62,7 @@ async function getSchedule(req, res) {
     
 
     try {
+        console.log("this the request body : " ,reqBody);
         const response = await axios.post(apiEndpoint, reqBody, { headers });
         return res.json(response.data);
     } catch (error) {
